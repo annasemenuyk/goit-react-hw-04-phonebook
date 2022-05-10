@@ -1,61 +1,51 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+
 import { nanoid } from 'nanoid';
 import ContactForm from './ContactForm';
 import ContactFilter from './ContactFilter';
 import ContactList from './ContactList';
 import Container from './Container';
 
-class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
-  componentDidMount() {
+const App = () => {
+  const [contacts, setContacts] = useState(
+    JSON.parse(localStorage.getItem('Contacts')) ?? []
+  );
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
     const contacts = localStorage.getItem('contacts');
     const parcedContacts = JSON.parse(contacts);
 
     if (parcedContacts) {
-      this.setState({ contacts: parcedContacts });
+      setContacts(parcedContacts);
     }
-  }
+  }, []);
 
-  componentDidUpdate(prevProps, prevState) {
-    const nextContacts = this.state.contacts;
-    const prevContacts = prevState.contacts;
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-    if (nextContacts !== prevContacts) {
-      localStorage.setItem('contacts', JSON.stringify(nextContacts));
-    }
-  }
-
-  addContact = ({ name, number }) => {
+  const addContact = ({ name, number }) => {
     const contact = {
       id: nanoid(),
       name,
       number,
     };
-
-    const alreadyFind = this.state.contacts.find(
-      contact => contact.name === name
-    );
+    const alreadyFind = contacts.find(contact => contact.name === name);
 
     alreadyFind
-      ? alert(`${name} is already in contacts.`)
-      : this.setState(({ contacts }) => ({ contacts: [contact, ...contacts] }));
+      ? toast.error(`${name} is already in contacts.`)
+      : setContacts(prevState => [contact, ...prevState]);
   };
 
-  findContact = event => {
-    this.setState({ filter: event.target.value });
+  const findContact = event => {
+    setFilter(event.target.value);
   };
 
-  getFilterContacts = () => {
-    const { contacts, filter } = this.state;
+  const getFilterContacts = () => {
     const normalizedFilter = filter.toLowerCase();
 
     return contacts.filter(contact =>
@@ -63,30 +53,22 @@ class App extends Component {
     );
   };
 
-  deleteContact = contactId => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== contactId),
-    }));
+  const deleteContact = contactId => {
+    setContacts(contacts.filter(contact => contact.id !== contactId));
   };
-
-  render() {
-    const { filter } = this.state;
-    const FilterContacts = this.getFilterContacts();
-
-    return (
-      <Container>
-        <h1 className="Title">Phonebook</h1>
-        <ContactForm onSubmit={this.addContact} />
-
-        <h2 className="Title">Contacts</h2>
-        <ContactFilter value={filter} onFindContact={this.findContact} />
-        <ContactList
-          onFilteredContacts={FilterContacts}
-          onDeleteContact={this.deleteContact}
-        />
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <h1 className="Title">Phonebook</h1>
+      <ContactForm onSubmit={addContact} />
+      <h2 className="Title">Contacts</h2>
+      <ContactFilter value={filter} onFindContact={findContact} />
+      <ContactList
+        onFilteredContacts={getFilterContacts()}
+        onDeleteContact={deleteContact}
+      />
+      <ToastContainer />
+    </Container>
+  );
+};
 
 export default App;
